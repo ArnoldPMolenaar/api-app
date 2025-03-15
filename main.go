@@ -5,6 +5,7 @@ import (
 	"api-app/main/src/configs"
 	"api-app/main/src/database"
 	"api-app/main/src/middleware"
+	"api-app/main/src/routes"
 	"fmt"
 	routeutil "github.com/ArnoldPMolenaar/api-utils/routes"
 	"github.com/ArnoldPMolenaar/api-utils/utils"
@@ -33,6 +34,8 @@ func main() {
 	}
 	defer cache.Valkey.Close()
 
+	// Register a private routes_util for app.
+	routes.PrivateRoutes(app)
 	// Register route for 404 Error.
 	routeutil.NotFoundRoute(app)
 
