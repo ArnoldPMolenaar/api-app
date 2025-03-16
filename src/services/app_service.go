@@ -47,7 +47,7 @@ func GetAppById(id uint, unscoped ...bool) (*models.App, error) {
 }
 
 // CreateApp method to create an app.
-func CreateApp(name string, domains *[]requests.CreateDomain) (*models.App, error) {
+func CreateApp(name string, domains *[]requests.CreateAppDomain) (*models.App, error) {
 	app := models.App{
 		Name:    name,
 		Domains: make([]models.Domain, len(*domains)),
@@ -74,7 +74,7 @@ func CreateApp(name string, domains *[]requests.CreateDomain) (*models.App, erro
 }
 
 // UpdateApp method to update an app.
-func UpdateApp(oldApp *models.App, name string, domains *[]requests.UpdateDomain) (*models.App, error) {
+func UpdateApp(oldApp *models.App, name string, domains *[]requests.UpdateAppDomain) (*models.App, error) {
 	// Start a new transaction
 	tx := database.Pg.Begin()
 	if tx.Error != nil {
@@ -84,7 +84,7 @@ func UpdateApp(oldApp *models.App, name string, domains *[]requests.UpdateDomain
 	oldApp.Name = name
 
 	// Create a map for quick lookup of new domains by name.
-	newDomainsMap := make(map[uint]requests.UpdateDomain)
+	newDomainsMap := make(map[uint]requests.UpdateAppDomain)
 	for i := range *domains {
 		if (*domains)[i].ID != 0 {
 			newDomainsMap[(*domains)[i].ID] = (*domains)[i]

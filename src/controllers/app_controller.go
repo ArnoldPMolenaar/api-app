@@ -9,7 +9,7 @@ import (
 	"api-app/main/src/services"
 	errorutil "github.com/ArnoldPMolenaar/api-utils/errors"
 	"github.com/ArnoldPMolenaar/api-utils/pagination"
-	utils "github.com/ArnoldPMolenaar/api-utils/utils"
+	"github.com/ArnoldPMolenaar/api-utils/utils"
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -121,7 +121,11 @@ func CreateApp(c *fiber.Ctx) error {
 // UpdateApp func to update a app.
 func UpdateApp(c *fiber.Ctx) error {
 	// Get the ID from the URL.
-	id, err := utils.StringToUint(c.Params("id"))
+	appIDParam := c.Params("id")
+	if appIDParam == "" {
+		return errorutil.Response(c, fiber.StatusBadRequest, errorutil.MissingRequiredParam, "App ID is required.")
+	}
+	appID, err := utils.StringToUint(appIDParam)
 	if err != nil {
 		return errorutil.Response(c, fiber.StatusBadRequest, errorutil.InvalidParam, err.Error())
 	}
@@ -139,7 +143,7 @@ func UpdateApp(c *fiber.Ctx) error {
 	}
 
 	// Check if app exists.
-	app, err := services.GetAppById(id, true)
+	app, err := services.GetAppById(appID, true)
 	if err != nil {
 		return errorutil.Response(c, fiber.StatusInternalServerError, errorutil.QueryError, err.Error())
 	} else if app.ID == 0 {
@@ -164,7 +168,7 @@ func UpdateApp(c *fiber.Ctx) error {
 			continue
 		}
 
-		var newDomain *requests.UpdateDomain = nil
+		var newDomain *requests.UpdateAppDomain = nil
 		for j := range request.Domains {
 			if app.Domains[i].ID == request.Domains[j].ID {
 				newDomain = &request.Domains[j]
@@ -192,13 +196,17 @@ func UpdateApp(c *fiber.Ctx) error {
 // DeleteApp func to delete a app.
 func DeleteApp(c *fiber.Ctx) error {
 	// Get the ID from the URL.
-	id, err := utils.StringToUint(c.Params("id"))
+	appIDParam := c.Params("id")
+	if appIDParam == "" {
+		return errorutil.Response(c, fiber.StatusBadRequest, errorutil.MissingRequiredParam, "App ID is required.")
+	}
+	appID, err := utils.StringToUint(appIDParam)
 	if err != nil {
 		return errorutil.Response(c, fiber.StatusBadRequest, errorutil.InvalidParam, err.Error())
 	}
 
 	// Find the app.
-	app, err := services.GetAppById(id)
+	app, err := services.GetAppById(appID)
 	if err != nil {
 		return errorutil.Response(c, fiber.StatusInternalServerError, errorutil.QueryError, err.Error())
 	} else if app.ID == 0 {
@@ -216,20 +224,24 @@ func DeleteApp(c *fiber.Ctx) error {
 // RestoreApp func to restore a app.
 func RestoreApp(c *fiber.Ctx) error {
 	// Get the ID from the URL.
-	id, err := utils.StringToUint(c.Params("id"))
+	appIDParam := c.Params("id")
+	if appIDParam == "" {
+		return errorutil.Response(c, fiber.StatusBadRequest, errorutil.MissingRequiredParam, "App ID is required.")
+	}
+	appID, err := utils.StringToUint(appIDParam)
 	if err != nil {
 		return errorutil.Response(c, fiber.StatusBadRequest, errorutil.InvalidParam, err.Error())
 	}
 
 	// Find the app.
-	if deleted, err := services.IsAppDeleted(id); err != nil {
+	if deleted, err := services.IsAppDeleted(appID); err != nil {
 		return errorutil.Response(c, fiber.StatusInternalServerError, errorutil.QueryError, err.Error())
 	} else if !deleted {
 		return errorutil.Response(c, fiber.StatusNotFound, errors.AppExists, "App does not exist.")
 	}
 
 	// Restore the app.
-	if err := services.RestoreApp(id); err != nil {
+	if err := services.RestoreApp(appID); err != nil {
 		return errorutil.Response(c, fiber.StatusInternalServerError, errorutil.QueryError, err.Error())
 	}
 

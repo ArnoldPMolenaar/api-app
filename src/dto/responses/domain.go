@@ -7,16 +7,17 @@ import (
 
 // Domain struct to handle domain response.
 type Domain struct {
-	ID          uint      `json:"id"`
-	AppID       uint      `json:"appId"`
-	SSL         bool      `json:"ssl"`
-	Name        string    `json:"name"`
-	Sub         *string   `json:"sub"`
-	SecondLevel string    `json:"secondLevel"`
-	TopLevel    string    `json:"topLevel"`
-	IpAddress   string    `json:"ipAddress"`
-	CreatedAt   time.Time `json:"createdAt"`
-	UpdatedAt   time.Time `json:"updatedAt"`
+	ID          uint            `json:"id"`
+	AppID       uint            `json:"appId"`
+	SSL         bool            `json:"ssl"`
+	Name        string          `json:"name"`
+	Sub         *string         `json:"sub"`
+	SecondLevel string          `json:"secondLevel"`
+	TopLevel    string          `json:"topLevel"`
+	IpAddress   string          `json:"ipAddress"`
+	CreatedAt   time.Time       `json:"createdAt"`
+	UpdatedAt   time.Time       `json:"updatedAt"`
+	Settings    []DomainSetting `json:"settings"`
 }
 
 // SetDomain method to set domain data from models.Domain{}.
@@ -33,4 +34,9 @@ func (d *Domain) SetDomain(domain *models.Domain) {
 	d.IpAddress = domain.IpAddress
 	d.CreatedAt = domain.CreatedAt
 	d.UpdatedAt = domain.UpdatedAt
+	d.Settings = make([]DomainSetting, len(domain.Settings))
+	for i := range domain.Settings {
+		d.Settings[i] = DomainSetting{}
+		d.Settings[i].SetDomainSetting(&domain.Settings[i])
+	}
 }

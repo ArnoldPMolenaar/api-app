@@ -19,4 +19,12 @@ func PrivateRoutes(a *fiber.App) {
 	apps.Put("/:id", controllers.UpdateApp)
 	apps.Delete("/:id", controllers.DeleteApp)
 	apps.Put("/:id/restore", controllers.RestoreApp)
+
+	// Register CRUD routes for /v1/domains.
+	domains := route.Group("/domains", middleware.MachineProtected())
+	domains.Post("/", controllers.CreateDomain)
+	domains.Get("/:id", controllers.GetDomain)
+	domains.Put("/:id", controllers.UpdateDomain)
+	domains.Delete("/:id", controllers.DeleteDomain)
+	domains.Put("/:id/restore", controllers.RestoreDomain)
 }
