@@ -2,6 +2,7 @@ package routes
 
 import (
 	"api-app/main/src/controllers"
+	"api-app/main/src/enums"
 	"github.com/ArnoldPMolenaar/api-utils/middleware"
 	"github.com/gofiber/fiber/v2"
 )
@@ -27,4 +28,13 @@ func PrivateRoutes(a *fiber.App) {
 	domains.Put("/:id", controllers.UpdateDomain)
 	domains.Delete("/:id", controllers.DeleteDomain)
 	domains.Put("/:id/restore", controllers.RestoreDomain)
+
+	// Register routes for /v1/domains/settings.
+	domainSettings := domains.Group("/settings")
+	domainSettings.Get("/", func(c *fiber.Ctx) error {
+		return controllers.GetSettingsByDomainName(c, enums.Private)
+	})
+	domainSettings.Get("/:id", func(c *fiber.Ctx) error {
+		return controllers.GetSettingsByDomainID(c, enums.Private)
+	})
 }
