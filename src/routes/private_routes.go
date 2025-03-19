@@ -5,6 +5,7 @@ import (
 	"api-app/main/src/enums"
 	"github.com/ArnoldPMolenaar/api-utils/middleware"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/log"
 )
 
 // PrivateRoutes func for describe group of private routes.
@@ -28,13 +29,13 @@ func PrivateRoutes(a *fiber.App) {
 	domains.Put("/:id", controllers.UpdateDomain)
 	domains.Delete("/:id", controllers.DeleteDomain)
 	domains.Put("/:id/restore", controllers.RestoreDomain)
-
-	// Register routes for /v1/domains/settings.
-	domainSettings := domains.Group("/settings")
-	domainSettings.Get("/", func(c *fiber.Ctx) error {
+	domains.Get("/settings", func(c *fiber.Ctx) error {
+		log.Debug("settings")
+		// TODO: This route can not be reached.
 		return controllers.GetSettingsByDomainName(c, enums.Private)
 	})
-	domainSettings.Get("/:id", func(c *fiber.Ctx) error {
+	domains.Get("/:id/settings", func(c *fiber.Ctx) error {
+		log.Debug("ID settings")
 		return controllers.GetSettingsByDomainID(c, enums.Private)
 	})
 }

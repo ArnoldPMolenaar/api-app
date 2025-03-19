@@ -98,15 +98,41 @@ func UpdateDomain(oldDomain models.Domain, ssl bool, name, ipAddress string, set
 		return nil, result.Error
 	}
 
+	_ = deleteSettingsCache(oldDomain.ID, oldDomain.Name)
+
 	return &oldDomain, nil
 }
 
 // DeleteDomain method to delete a domain.
 func DeleteDomain(domain *models.Domain) error {
+	_ = deleteSettingsCache(domain.ID, domain.Name)
+
 	return database.Pg.Delete(domain).Error
 }
 
 // RestoreDomain method to restore a domain.
 func RestoreDomain(id uint) error {
 	return database.Pg.Unscoped().Model(&models.Domain{}).Where("id = ?", id).Update("deleted_at", nil).Error
+}
+
+// deleteSettingsCache method to delete the settings cache.
+func deleteSettingsCache(domainID uint, domainName string) error {
+	if err := DeleteSettingsFromCache(SettingsCacheKeyOnId(domainID)); err != nil {
+		return err
+	}
+
+	var appName string
+	if result := database.Pg.Model(&models.Domain{}).
+		Joins("JOIN apps ON apps.id = domains.app_id").
+		Where("domains.id = ?", domainID).
+		Select("apps.name").
+		Scan(&appName); result.Error != nil {
+		return result.Error
+	}
+
+	if err := DeleteSettingsFromCache(SettingsCacheKeyOnName(appName, domainName)); err != nil {
+		return err
+	}
+
+	return nil
 }
