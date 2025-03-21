@@ -75,7 +75,7 @@ func CreateDomain(appID uint, ssl bool, name, ipAddress string, settings *[]requ
 }
 
 // UpdateDomain method to update a domain.
-func UpdateDomain(oldDomain models.Domain, ssl bool, name, ipAddress string, settings *[]requests.DomainSetting) (*models.Domain, error) {
+func UpdateDomain(oldDomain *models.Domain, ssl bool, name, ipAddress string, settings *[]requests.DomainSetting) (*models.Domain, error) {
 	subdomain, secondLevelDomain, topLevelDomain := utils.ExtractDomain(name)
 	oldDomain.SSL = ssl
 	oldDomain.Name = name
@@ -100,7 +100,7 @@ func UpdateDomain(oldDomain models.Domain, ssl bool, name, ipAddress string, set
 
 	_ = deleteSettingsCache(oldDomain.ID, oldDomain.Name)
 
-	return &oldDomain, nil
+	return oldDomain, nil
 }
 
 // DeleteDomain method to delete a domain.

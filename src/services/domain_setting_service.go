@@ -111,7 +111,6 @@ func SetSettingsToCache(key string, settings *[]models.DomainSetting) error {
 		return err
 	}
 
-	//log.Debug(value)
 	expiration := os.Getenv("VALKEY_EXPIRATION")
 	duration, err := time.ParseDuration(expiration)
 	if err != nil {

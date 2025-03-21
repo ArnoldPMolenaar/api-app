@@ -130,7 +130,7 @@ func UpdateDomain(c *fiber.Ctx) error {
 	}
 
 	// Update the domain.
-	domain, err = services.UpdateDomain(*domain, request.SSL, request.Name, request.IpAddress, &request.Settings)
+	domain, err = services.UpdateDomain(domain, request.SSL, request.Name, request.IpAddress, &request.Settings)
 	if err != nil {
 		return errorutil.Response(c, fiber.StatusInternalServerError, errorutil.QueryError, err.Error())
 	}
