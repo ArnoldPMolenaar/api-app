@@ -7,6 +7,7 @@
 ## 📜 Description
 
 This API provides endpoints to manage applications and their associated domain names. Each application can have multiple domain names, and each domain name has its own settings.  
+  
 **Features:**
 - **Operations for Apps:** Create, read, update, and delete applications.
 - **CRUD Operations for Domains:** Create, read, update, and delete domain names associated with applications.
