@@ -1,7 +1,7 @@
 services:
   dev:
-    hostname: api_file_dev
-    container_name: api_file_dev
+    hostname: api_app_dev
+    container_name: api_app_dev
     build:
       context: .
       dockerfile: docker/development.dockerfile
@@ -16,8 +16,8 @@ services:
     network_mode: "host"
     command: ["air"]
   prod:
-    hostname: api_file_prod
-    container_name: api_file_prod
+    hostname: api_app_prod
+    container_name: api_app_prod
     build:
       context: .
       dockerfile: docker/production.dockerfile
@@ -30,8 +30,8 @@ services:
     network_mode: "host"
     command: ["/api"]
   valkey:
-    container_name: api_file_valkey
-    hostname: api_file_valkey
+    container_name: api_app_valkey
+    hostname: api_app_valkey
     build:
       context: .
       dockerfile: docker/valkey.dockerfile
