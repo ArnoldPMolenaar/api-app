@@ -13,6 +13,23 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
+// AreAppsAvailable checks if all given apps exist.
+func AreAppsAvailable(c *fiber.Ctx) error {
+	// Get the appName parameter from the query string.
+	query := &requests.AreAppsAvailable{}
+	if err := c.QueryParser(query); err != nil {
+		return errorutil.Response(c, fiber.StatusBadRequest, errorutil.BodyParse, err.Error())
+	}
+
+	// Check if the apps exists.
+	exist, err := services.AreAppsAvailable(query.AppNames)
+	if err != nil {
+		return errorutil.Response(c, fiber.StatusInternalServerError, errorutil.QueryError, err.Error())
+	}
+
+	return c.JSON(responses.Exists{Exists: exist})
+}
+
 // GetApps function fetches all apps from the database.
 func GetApps(c *fiber.Ctx) error {
 	apps := make([]models.App, 0)

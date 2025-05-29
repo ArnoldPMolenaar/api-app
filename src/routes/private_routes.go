@@ -16,6 +16,7 @@ func PrivateRoutes(a *fiber.App) {
 	apps := route.Group("/apps", middleware.MachineProtected())
 	apps.Get("/", controllers.GetApps)
 	apps.Post("/", controllers.CreateApp)
+	apps.Get("/exists", controllers.AreAppsAvailable)
 	apps.Get("/:id", controllers.GetApp)
 	apps.Put("/:id", controllers.UpdateApp)
 	apps.Delete("/:id", controllers.DeleteApp)

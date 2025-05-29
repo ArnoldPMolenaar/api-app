@@ -17,6 +17,16 @@ func IsAppAvailable(app string) (bool, error) {
 	}
 }
 
+// AreAppsAvailable checks if all the given app names exist.
+func AreAppsAvailable(apps []string) (bool, error) {
+	var foundApps int64
+	result := database.Pg.Model(&models.App{}).Where("name IN ?", apps).Count(&foundApps)
+	if result.Error != nil {
+		return false, result.Error
+	}
+	return int64(len(apps)) == foundApps, nil
+}
+
 // IsAppDeleted method to check if an app is deleted.
 func IsAppDeleted(id uint) (bool, error) {
 	var count int64
