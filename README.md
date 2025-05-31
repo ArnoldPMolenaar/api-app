@@ -24,6 +24,8 @@ This API provides endpoints to manage applications and their associated domain n
     - `PUT /v1/apps/:id` - Update an app by ID
     - `DELETE /v1/apps/:id` - Delete an app by ID
     - `PUT /v1/apps/:id/restore` - Restore a deleted app by ID
+    - `GET /v1/apps/settings` - Get settings by app name
+    - `GET /v1/apps/:id/settings` - Get settings by app ID
 
 - **Domains**
     - `POST /v1/domains/` - Create a new domain
@@ -37,8 +39,10 @@ This API provides endpoints to manage applications and their associated domain n
 ### Public Routes
 
 - **Settings**
-    - `GET /v1/settings/` - Get settings by domain name
-    - `GET /v1/settings/:id` - Get settings by domain ID
+    - `GET /v1/settings/apps` - Get settings by app name
+    - `GET /v1/settings/apps/:id` - Get settings by app ID
+    - `GET /v1/settings/domains` - Get settings by domain name
+    - `GET /v1/settings/domains/:id` - Get settings by domain ID
 
 ## 🚀 Getting Started
 
