@@ -16,11 +16,17 @@ func PrivateRoutes(a *fiber.App) {
 	apps := route.Group("/apps", middleware.MachineProtected())
 	apps.Get("/", controllers.GetApps)
 	apps.Post("/", controllers.CreateApp)
+	apps.Get("/settings", func(c *fiber.Ctx) error {
+		return controllers.GetSettingsByAppName(c, enums.Private)
+	})
 	apps.Get("/exists", controllers.AreAppsAvailable)
 	apps.Get("/:id", controllers.GetApp)
 	apps.Put("/:id", controllers.UpdateApp)
 	apps.Delete("/:id", controllers.DeleteApp)
 	apps.Put("/:id/restore", controllers.RestoreApp)
+	apps.Get("/:id/settings", func(c *fiber.Ctx) error {
+		return controllers.GetSettingsByAppID(c, enums.Private)
+	})
 
 	// Register CRUD routes for /v1/domains.
 	domains := route.Group("/domains", middleware.MachineProtected())

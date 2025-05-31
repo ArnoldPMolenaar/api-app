@@ -83,8 +83,23 @@ func UpdateDomain(oldDomain *models.Domain, ssl bool, name, ipAddress string, se
 	oldDomain.SecondLevel = secondLevelDomain
 	oldDomain.TopLevel = topLevelDomain
 	oldDomain.IpAddress = ipAddress
-	oldDomain.Settings = make([]models.DomainSetting, len(*settings))
 
+	// Start a new transaction
+	tx := database.Pg.Begin()
+	if tx.Error != nil {
+		return nil, tx.Error
+	}
+
+	for i := range oldDomain.Settings {
+		// Delete old settings.
+		if result := tx.Delete(&oldDomain.Settings[i]); result.Error != nil {
+			tx.Rollback()
+			return nil, result.Error
+		}
+	}
+
+	// Clear old settings slice to prepare for new settings.
+	oldDomain.Settings = make([]models.DomainSetting, len(*settings))
 	for i := range *settings {
 		oldDomain.Settings[i] = models.DomainSetting{
 			Name:      (*settings)[i].Name,
@@ -94,18 +109,25 @@ func UpdateDomain(oldDomain *models.Domain, ssl bool, name, ipAddress string, se
 		}
 	}
 
-	if result := database.Pg.Save(oldDomain); result.Error != nil {
+	if result := tx.Save(oldDomain); result.Error != nil {
+		tx.Rollback()
 		return nil, result.Error
 	}
 
-	_ = deleteSettingsCache(oldDomain.ID, oldDomain.Name)
+	// Commit the transaction
+	if err := tx.Commit().Error; err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+
+	_ = deleteDomainSettingsCache(oldDomain.ID, oldDomain.Name)
 
 	return oldDomain, nil
 }
 
 // DeleteDomain method to delete a domain.
 func DeleteDomain(domain *models.Domain) error {
-	_ = deleteSettingsCache(domain.ID, domain.Name)
+	_ = deleteDomainSettingsCache(domain.ID, domain.Name)
 
 	return database.Pg.Delete(domain).Error
 }
@@ -115,9 +137,12 @@ func RestoreDomain(id uint) error {
 	return database.Pg.Unscoped().Model(&models.Domain{}).Where("id = ?", id).Update("deleted_at", nil).Error
 }
 
-// deleteSettingsCache method to delete the settings cache.
-func deleteSettingsCache(domainID uint, domainName string) error {
-	if err := DeleteSettingsFromCache(SettingsCacheKeyOnId(domainID)); err != nil {
+// deleteDomainSettingsCache method to delete the settings cache.
+func deleteDomainSettingsCache(domainID uint, domainName string) error {
+	if err := DeleteDomainSettingsFromCache(DomainSettingsCacheKeyOnId(domainID, enums.Private)); err != nil {
+		return err
+	}
+	if err := DeleteDomainSettingsFromCache(DomainSettingsCacheKeyOnId(domainID, enums.Public)); err != nil {
 		return err
 	}
 
@@ -130,7 +155,10 @@ func deleteSettingsCache(domainID uint, domainName string) error {
 		return result.Error
 	}
 
-	if err := DeleteSettingsFromCache(SettingsCacheKeyOnName(appName, domainName)); err != nil {
+	if err := DeleteDomainSettingsFromCache(DomainSettingsCacheKeyOnName(appName, domainName, enums.Private)); err != nil {
+		return err
+	}
+	if err := DeleteDomainSettingsFromCache(DomainSettingsCacheKeyOnName(appName, domainName, enums.Public)); err != nil {
 		return err
 	}
 

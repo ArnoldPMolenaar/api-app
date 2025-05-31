@@ -13,10 +13,22 @@ func PublicRoutes(a *fiber.App) {
 
 	// Register routes for /v1/settings.
 	settings := route.Group("/settings")
-	settings.Get("/", func(c *fiber.Ctx) error {
+
+	// Register routes for /v1/settings/apps.
+	apps := settings.Group("/apps")
+	apps.Get("/", func(c *fiber.Ctx) error {
+		return controllers.GetSettingsByAppName(c, enums.Public)
+	})
+	apps.Get("/:id", func(c *fiber.Ctx) error {
+		return controllers.GetSettingsByAppID(c, enums.Public)
+	})
+
+	// Register routes for /v1/settings/domains.
+	domains := settings.Group("/domains")
+	domains.Get("/", func(c *fiber.Ctx) error {
 		return controllers.GetSettingsByDomainName(c, enums.Public)
 	})
-	settings.Get("/:id", func(c *fiber.Ctx) error {
+	domains.Get("/:id", func(c *fiber.Ctx) error {
 		return controllers.GetSettingsByDomainID(c, enums.Public)
 	})
 }

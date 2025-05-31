@@ -123,7 +123,7 @@ func CreateApp(c *fiber.Ctx) error {
 	}
 
 	// Create the app.
-	app, err := services.CreateApp(request.Name, &request.Domains)
+	app, err := services.CreateApp(&request)
 	if err != nil {
 		return errorutil.Response(c, fiber.StatusInternalServerError, errorutil.QueryError, err.Error())
 	}
@@ -198,7 +198,7 @@ func UpdateApp(c *fiber.Ctx) error {
 	}
 
 	// Update the app.
-	updatedApp, err := services.UpdateApp(app, request.Name, &request.Domains)
+	updatedApp, err := services.UpdateApp(app, &request)
 	if err != nil {
 		return errorutil.Response(c, fiber.StatusInternalServerError, errorutil.QueryError, err.Error())
 	}

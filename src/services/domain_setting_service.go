@@ -13,15 +13,15 @@ import (
 	"time"
 )
 
-// GetSettingsByDomainName method to get settings by domain name.
-func GetSettingsByDomainName(appName, domainName string, level enums.Level) (*[]models.DomainSetting, error) {
+// GetDomainSettingsByName method to get settings by domain name.
+func GetDomainSettingsByName(appName, domainName string, level enums.Level) (*[]models.DomainSetting, error) {
 	var settings []models.DomainSetting
-	cacheKey := SettingsCacheKeyOnName(appName, domainName)
+	cacheKey := DomainSettingsCacheKeyOnName(appName, domainName, level)
 
-	if inCache, err := IsSettingsInCache(cacheKey); err != nil {
+	if inCache, err := IsDomainSettingsInCache(cacheKey); err != nil {
 		return nil, err
 	} else if inCache {
-		if cacheSettings, err := GetSettingsFromCache(cacheKey); err != nil {
+		if cacheSettings, err := GetDomainSettingsFromCache(cacheKey); err != nil {
 			return nil, err
 		} else if cacheSettings != nil && len(*cacheSettings) > 0 {
 			settings = *cacheSettings
@@ -36,21 +36,21 @@ func GetSettingsByDomainName(appName, domainName string, level enums.Level) (*[]
 			Find(&settings); result.Error != nil {
 			return nil, result.Error
 		}
-		_ = SetSettingsToCache(cacheKey, &settings)
+		_ = SetDomainSettingsToCache(cacheKey, &settings)
 	}
 
 	return &settings, nil
 }
 
-// GetSettingsByDomainID method to get settings by domain ID.
-func GetSettingsByDomainID(domainID uint, level enums.Level) (*[]models.DomainSetting, error) {
+// GetDomainSettingsByDomainID method to get settings by domain ID.
+func GetDomainSettingsByDomainID(domainID uint, level enums.Level) (*[]models.DomainSetting, error) {
 	var settings []models.DomainSetting
-	cacheKey := SettingsCacheKeyOnId(domainID)
+	cacheKey := DomainSettingsCacheKeyOnId(domainID, level)
 
-	if inCache, err := IsSettingsInCache(cacheKey); err != nil {
+	if inCache, err := IsDomainSettingsInCache(cacheKey); err != nil {
 		return nil, err
 	} else if inCache {
-		if cacheSettings, err := GetSettingsFromCache(cacheKey); err != nil {
+		if cacheSettings, err := GetDomainSettingsFromCache(cacheKey); err != nil {
 			return nil, err
 		} else if cacheSettings != nil && len(*cacheSettings) > 0 {
 			settings = *cacheSettings
@@ -63,14 +63,14 @@ func GetSettingsByDomainID(domainID uint, level enums.Level) (*[]models.DomainSe
 			Find(&settings); result.Error != nil {
 			return nil, result.Error
 		}
-		_ = SetSettingsToCache(cacheKey, &settings)
+		_ = SetDomainSettingsToCache(cacheKey, &settings)
 	}
 
 	return &settings, nil
 }
 
-// IsSettingsInCache checks if the settings exists in the cache.
-func IsSettingsInCache(key string) (bool, error) {
+// IsDomainSettingsInCache checks if the settings exists in the cache.
+func IsDomainSettingsInCache(key string) (bool, error) {
 	result := cache.Valkey.Do(context.Background(), cache.Valkey.B().Exists().Key(key).Build())
 	if result.Error() != nil {
 		return false, result.Error()
@@ -84,8 +84,8 @@ func IsSettingsInCache(key string) (bool, error) {
 	return value == 1, nil
 }
 
-// GetSettingsFromCache gets the settings from the cache.
-func GetSettingsFromCache(key string) (*[]models.DomainSetting, error) {
+// GetDomainSettingsFromCache gets the settings from the cache.
+func GetDomainSettingsFromCache(key string) (*[]models.DomainSetting, error) {
 	result := cache.Valkey.Do(context.Background(), cache.Valkey.B().Get().Key(key).Build())
 	if result.Error() != nil {
 		return nil, result.Error()
@@ -104,8 +104,8 @@ func GetSettingsFromCache(key string) (*[]models.DomainSetting, error) {
 	return &settings, nil
 }
 
-// SetSettingsToCache sets the settings to the cache.
-func SetSettingsToCache(key string, settings *[]models.DomainSetting) error {
+// SetDomainSettingsToCache sets the settings to the cache.
+func SetDomainSettingsToCache(key string, settings *[]models.DomainSetting) error {
 	value, err := json.Marshal(settings)
 	if err != nil {
 		return err
@@ -125,8 +125,8 @@ func SetSettingsToCache(key string, settings *[]models.DomainSetting) error {
 	return nil
 }
 
-// DeleteSettingsFromCache deletes an existing setting from the cache.
-func DeleteSettingsFromCache(key string) error {
+// DeleteDomainSettingsFromCache deletes an existing setting from the cache.
+func DeleteDomainSettingsFromCache(key string) error {
 	result := cache.Valkey.Do(context.Background(), cache.Valkey.B().Del().Key(key).Build())
 	if result.Error() != nil {
 		return result.Error()
@@ -135,12 +135,12 @@ func DeleteSettingsFromCache(key string) error {
 	return nil
 }
 
-// SettingsCacheKeyOnName returns the key for the settings cache with a name.
-func SettingsCacheKeyOnName(appName, domainName string) string {
-	return fmt.Sprintf("%s:%s:settings", appName, domainName)
+// DomainSettingsCacheKeyOnName returns the key for the settings cache with a name.
+func DomainSettingsCacheKeyOnName(appName, domainName string, level enums.Level) string {
+	return fmt.Sprintf("%s:%s:settings:%s", appName, domainName, level.String())
 }
 
-// SettingsCacheKeyOnId returns the key for the settings cache with an id.
-func SettingsCacheKeyOnId(domainID uint) string {
-	return fmt.Sprintf("settings:%d", domainID)
+// DomainSettingsCacheKeyOnId returns the key for the settings cache with an id.
+func DomainSettingsCacheKeyOnId(domainID uint, level enums.Level) string {
+	return fmt.Sprintf("settings:domains:%d:%s", domainID, level.String())
 }

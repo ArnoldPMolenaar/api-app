@@ -3,6 +3,7 @@ package services
 import (
 	"api-app/main/src/database"
 	"api-app/main/src/dto/requests"
+	"api-app/main/src/enums"
 	"api-app/main/src/models"
 	"api-app/main/src/utils"
 	"database/sql"
@@ -40,6 +41,19 @@ func IsAppDeleted(id uint) (bool, error) {
 	return count == 1, nil
 }
 
+// GetAppIDByDomainID method to get the app ID by domain ID.
+func GetAppIDByDomainID(domainID uint) (uint, error) {
+	var appID uint
+	if result := database.Pg.Model(&models.Domain{}).
+		Select("app_id").
+		Where("id = ?", domainID).
+		Scan(&appID); result.Error != nil {
+		return 0, result.Error
+	}
+
+	return appID, nil
+}
+
 // GetAppById method to get an app by its ID.
 func GetAppById(id uint, unscoped ...bool) (*models.App, error) {
 	app := &models.App{}
@@ -49,7 +63,7 @@ func GetAppById(id uint, unscoped ...bool) (*models.App, error) {
 		query = query.Unscoped()
 	}
 
-	if result := query.Preload("Domains").Find(app, "id = ?", id); result.Error != nil {
+	if result := query.Preload("Settings").Preload("Domains").Find(app, "id = ?", id); result.Error != nil {
 		return nil, result.Error
 	}
 
@@ -57,22 +71,32 @@ func GetAppById(id uint, unscoped ...bool) (*models.App, error) {
 }
 
 // CreateApp method to create an app.
-func CreateApp(name string, domains *[]requests.CreateAppDomain) (*models.App, error) {
+func CreateApp(request *requests.CreateApp) (*models.App, error) {
 	app := models.App{
-		Name:    name,
-		Domains: make([]models.Domain, len(*domains)),
+		Name:     request.Name,
+		Settings: make([]models.AppSetting, len(request.Settings)),
+		Domains:  make([]models.Domain, len(request.Domains)),
 	}
 
-	for i := range *domains {
-		subdomain, secondLevelDomain, topLevelDomain := utils.ExtractDomain((*domains)[i].Name)
+	for i := range request.Settings {
+		app.Settings[i] = models.AppSetting{
+			Name:      request.Settings[i].Name,
+			Level:     enums.Level(request.Settings[i].Level),
+			Value:     request.Settings[i].Value,
+			ValueType: enums.ValueType(request.Settings[i].ValueType),
+		}
+	}
+
+	for i := range request.Domains {
+		subdomain, secondLevelDomain, topLevelDomain := utils.ExtractDomain(request.Domains[i].Name)
 
 		app.Domains[i] = models.Domain{
-			SSL:         (*domains)[i].SSL,
-			Name:        (*domains)[i].Name,
+			SSL:         request.Domains[i].SSL,
+			Name:        request.Domains[i].Name,
 			Sub:         sql.NullString{String: subdomain, Valid: subdomain != ""},
 			SecondLevel: secondLevelDomain,
 			TopLevel:    topLevelDomain,
-			IpAddress:   (*domains)[i].IpAddress,
+			IpAddress:   request.Domains[i].IpAddress,
 		}
 	}
 
@@ -84,20 +108,39 @@ func CreateApp(name string, domains *[]requests.CreateAppDomain) (*models.App, e
 }
 
 // UpdateApp method to update an app.
-func UpdateApp(oldApp *models.App, name string, domains *[]requests.UpdateAppDomain) (*models.App, error) {
+func UpdateApp(oldApp *models.App, request *requests.UpdateApp) (*models.App, error) {
 	// Start a new transaction
 	tx := database.Pg.Begin()
 	if tx.Error != nil {
 		return nil, tx.Error
 	}
 
-	oldApp.Name = name
+	oldApp.Name = request.Name
+
+	for i := range oldApp.Settings {
+		// Delete old settings.
+		if result := tx.Delete(&oldApp.Settings[i]); result.Error != nil {
+			tx.Rollback()
+			return nil, result.Error
+		}
+	}
+	// Clear old settings slice to prepare for new settings.
+	oldApp.Settings = make([]models.AppSetting, len(request.Settings))
+	for i := range request.Settings {
+		oldApp.Settings[i] = models.AppSetting{
+			AppID:     oldApp.ID,
+			Name:      request.Settings[i].Name,
+			Level:     enums.Level(request.Settings[i].Level),
+			Value:     request.Settings[i].Value,
+			ValueType: enums.ValueType(request.Settings[i].ValueType),
+		}
+	}
 
 	// Create a map for quick lookup of new domains by name.
 	newDomainsMap := make(map[uint]requests.UpdateAppDomain)
-	for i := range *domains {
-		if (*domains)[i].ID != 0 {
-			newDomainsMap[(*domains)[i].ID] = (*domains)[i]
+	for i := range request.Domains {
+		if request.Domains[i].ID != 0 {
+			newDomainsMap[request.Domains[i].ID] = request.Domains[i]
 		}
 	}
 
@@ -158,6 +201,8 @@ func UpdateApp(oldApp *models.App, name string, domains *[]requests.UpdateAppDom
 		return nil, err
 	}
 
+	_ = deleteAppSettingsCache(oldApp.ID, request.Name)
+
 	// Retrieve the updated app. Because new domains are added and now have IDs.
 	newApp, err := GetAppById(oldApp.ID)
 	if err != nil {
@@ -169,10 +214,31 @@ func UpdateApp(oldApp *models.App, name string, domains *[]requests.UpdateAppDom
 
 // DeleteApp method to delete an app.
 func DeleteApp(app *models.App) error {
+	_ = deleteAppSettingsCache(app.ID, app.Name)
+
 	return database.Pg.Delete(app).Error
 }
 
 // RestoreApp method to restore a deleted app.
 func RestoreApp(id uint) error {
 	return database.Pg.Unscoped().Model(&models.App{}).Where("id = ?", id).Update("deleted_at", nil).Error
+}
+
+// deleteAppSettingsCache method to delete the settings cache.
+func deleteAppSettingsCache(appID uint, appName string) error {
+	if err := DeleteAppSettingsFromCache(AppSettingsCacheKeyOnId(appID, enums.Private)); err != nil {
+		return err
+	}
+	if err := DeleteAppSettingsFromCache(AppSettingsCacheKeyOnId(appID, enums.Public)); err != nil {
+		return err
+	}
+
+	if err := DeleteAppSettingsFromCache(AppSettingsCacheKeyOnName(appName, enums.Private)); err != nil {
+		return err
+	}
+	if err := DeleteAppSettingsFromCache(AppSettingsCacheKeyOnName(appName, enums.Public)); err != nil {
+		return err
+	}
+
+	return nil
 }

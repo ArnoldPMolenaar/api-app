@@ -26,14 +26,20 @@ func GetSettingsByDomainName(c *fiber.Ctx, level enums.Level) error {
 		return errorutil.Response(c, fiber.StatusBadRequest, errorutil.MissingRequiredParam, "Domain Name is required.")
 	}
 
-	// Get the settings.
-	settings, err := services.GetSettingsByDomainName(appName, domainName, level)
+	// Get the app settings.
+	appSettings, err := services.GetAppSettingsByName(appName, level)
+	if err != nil {
+		return errorutil.Response(c, fiber.StatusInternalServerError, errorutil.QueryError, err.Error())
+	}
+
+	// Get the domain settings.
+	domainSettings, err := services.GetDomainSettingsByName(appName, domainName, level)
 	if err != nil {
 		return errorutil.Response(c, fiber.StatusInternalServerError, errorutil.QueryError, err.Error())
 	}
 
 	// Return the settings.
-	response, err := toSettingsResponse(settings)
+	response, err := toSettingsResponse(appSettings, domainSettings)
 	if err != nil {
 		return errorutil.Response(c, fiber.StatusInternalServerError, errors.DomainSettings, err.Error())
 	}
@@ -53,14 +59,26 @@ func GetSettingsByDomainID(c *fiber.Ctx, level enums.Level) error {
 		return errorutil.Response(c, fiber.StatusBadRequest, errorutil.InvalidParam, "Invalid Domain ID.")
 	}
 
-	// Get the settings.
-	settings, err := services.GetSettingsByDomainID(domainID, level)
+	// Get the appID with the domainID.
+	appID, err := services.GetAppIDByDomainID(domainID)
+	if err != nil {
+		return errorutil.Response(c, fiber.StatusInternalServerError, errorutil.QueryError, err.Error())
+	}
+
+	// Get the app settings.
+	appSettings, err := services.GetAppSettingsByAppID(appID, level)
+	if err != nil {
+		return errorutil.Response(c, fiber.StatusInternalServerError, errorutil.QueryError, err.Error())
+	}
+
+	// Get the domain settings.
+	domainSettings, err := services.GetDomainSettingsByDomainID(domainID, level)
 	if err != nil {
 		return errorutil.Response(c, fiber.StatusInternalServerError, errorutil.QueryError, err.Error())
 	}
 
 	// Return the settings.
-	response, err := toSettingsResponse(settings)
+	response, err := toSettingsResponse(appSettings, domainSettings)
 	if err != nil {
 		return errorutil.Response(c, fiber.StatusInternalServerError, errors.DomainSettings, err.Error())
 	}
@@ -69,40 +87,50 @@ func GetSettingsByDomainID(c *fiber.Ctx, level enums.Level) error {
 }
 
 // toSettingsResponse converts an array of DomainSetting structs to a dynamic JSON object.
-func toSettingsResponse(settings *[]models.DomainSetting) (map[string]interface{}, error) {
+func toSettingsResponse(appSettings *[]models.AppSetting, domainSettings *[]models.DomainSetting) (map[string]interface{}, error) {
 	response := make(map[string]interface{})
 
-	for i := range *settings {
-		var setting = (*settings)[i]
-		var value interface{}
-		var err error
-
-		switch setting.ValueType {
+	convertSetting := func(name, valueType, value string) (interface{}, error) {
+		switch enums.ValueType(valueType) {
 		case enums.Int:
-			value, err = strconv.Atoi(setting.Value)
+			return strconv.Atoi(value)
 		case enums.Float:
-			value, err = strconv.ParseFloat(setting.Value, 64)
+			return strconv.ParseFloat(value, 64)
 		case enums.String:
-			value = setting.Value
+			return value, nil
 		case enums.Bool:
-			value, err = strconv.ParseBool(setting.Value)
+			return strconv.ParseBool(value)
 		case enums.Date:
-			value, err = time.Parse(time.DateOnly, setting.Value)
+			return time.Parse(time.DateOnly, value)
 		case enums.DateTime:
-			value, err = time.Parse(time.DateTime, setting.Value)
+			return time.Parse(time.DateTime, value)
 		case enums.JSON:
 			var js json.RawMessage
-			err = json.Unmarshal([]byte(setting.Value), &js)
-			value = js
+			err := json.Unmarshal([]byte(value), &js)
+			return js, err
 		default:
-			err = fmt.Errorf("unknown ValueType for setting %s", setting.Name)
+			return nil, fmt.Errorf("unknown ValueType for setting %s", name)
 		}
+	}
 
+	for i := range *appSettings {
+		setting := (*appSettings)[i]
+		value, err := convertSetting(setting.Name, string(setting.ValueType), setting.Value)
 		if err != nil {
 			return nil, fmt.Errorf("error converting setting %s: %v", setting.Name, err)
 		}
-
 		response[setting.Name] = value
+	}
+
+	if domainSettings != nil {
+		for i := range *domainSettings {
+			setting := (*domainSettings)[i]
+			value, err := convertSetting(setting.Name, string(setting.ValueType), setting.Value)
+			if err != nil {
+				return nil, fmt.Errorf("error converting setting %s: %v", setting.Name, err)
+			}
+			response[setting.Name] = value
+		}
 	}
 
 	return response, nil

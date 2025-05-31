@@ -28,17 +28,9 @@ func Migrate(db *gorm.DB) error {
 		return tx.Error
 	}
 
-	err := db.AutoMigrate(&models.App{}, &models.Domain{}, &models.DomainSetting{})
+	err := db.AutoMigrate(&models.App{}, &models.AppSetting{}, &models.Domain{}, &models.DomainSetting{})
 	if err != nil {
 		return err
-	}
-
-	// Seed App.
-	apps := []string{"Admin"}
-	for _, app := range apps {
-		if err := db.FirstOrCreate(&models.App{}, models.App{Name: app}).Error; err != nil {
-			return err
-		}
 	}
 
 	return nil
