@@ -4,13 +4,19 @@ import (
 	"api-app/main/src/database"
 	"api-app/main/src/dto/requests"
 	"api-app/main/src/dto/responses"
+	"api-app/main/src/enums"
 	"api-app/main/src/errors"
 	"api-app/main/src/models"
 	"api-app/main/src/services"
+	"encoding/json"
+	"fmt"
 	errorutil "github.com/ArnoldPMolenaar/api-utils/errors"
 	"github.com/ArnoldPMolenaar/api-utils/pagination"
 	"github.com/ArnoldPMolenaar/api-utils/utils"
 	"github.com/gofiber/fiber/v2"
+	"strconv"
+	"strings"
+	"time"
 )
 
 // AreAppsAvailable checks if all given apps exist.
@@ -114,6 +120,9 @@ func CreateApp(c *fiber.Ctx) error {
 	if err := validate.Struct(request); err != nil {
 		return errorutil.Response(c, fiber.StatusBadRequest, errorutil.Validator, utils.ValidatorErrors(err))
 	}
+	if validationErrors := validateAppSettings(&request.Settings); validationErrors != "" {
+		return errorutil.Response(c, fiber.StatusBadRequest, errors.AppSettings, validationErrors)
+	}
 
 	// Check if app exists.
 	if available, err := services.IsAppAvailable(request.Name); err != nil {
@@ -157,6 +166,9 @@ func UpdateApp(c *fiber.Ctx) error {
 	validate := utils.NewValidator()
 	if err := validate.Struct(request); err != nil {
 		return errorutil.Response(c, fiber.StatusBadRequest, errorutil.Validator, utils.ValidatorErrors(err))
+	}
+	if validationErrors := validateAppSettings(&request.Settings); validationErrors != "" {
+		return errorutil.Response(c, fiber.StatusBadRequest, errors.AppSettings, validationErrors)
 	}
 
 	// Check if app exists.
@@ -263,4 +275,49 @@ func RestoreApp(c *fiber.Ctx) error {
 	}
 
 	return c.SendStatus(fiber.StatusNoContent)
+}
+
+// validateAppSettings validates an array of DomainSetting structs.
+// It checks if the Value field of each DomainSetting is valid based on its ValueType.
+// If any validation errors occur, it returns a comma-separated string of error messages.
+// If the string is empty, it means all validations passed.
+func validateAppSettings(settings *[]requests.AppSetting) string {
+	var validateErrors []string
+
+	for i := range *settings {
+		setting := &(*settings)[i]
+		switch enums.ValueType(setting.ValueType) {
+		case enums.Int:
+			if _, err := strconv.Atoi(setting.Value); err != nil {
+				validateErrors = append(validateErrors, fmt.Sprintf("Invalid int value for setting %s", setting.Name))
+			}
+		case enums.Float:
+			if _, err := strconv.ParseFloat(setting.Value, 64); err != nil {
+				validateErrors = append(validateErrors, fmt.Sprintf("Invalid float value for setting %s", setting.Name))
+			}
+		case enums.String:
+			// No validation needed for string type.
+		case enums.Bool:
+			if _, err := strconv.ParseBool(setting.Value); err != nil {
+				validateErrors = append(validateErrors, fmt.Sprintf("Invalid bool value for setting %s", setting.Name))
+			}
+		case enums.Date:
+			if _, err := time.Parse(time.DateOnly, setting.Value); err != nil {
+				validateErrors = append(validateErrors, fmt.Sprintf("Invalid date value for setting %s", setting.Name))
+			}
+		case enums.DateTime:
+			if _, err := time.Parse(time.DateTime, setting.Value); err != nil {
+				validateErrors = append(validateErrors, fmt.Sprintf("Invalid datetime value for setting %s", setting.Name))
+			}
+		case enums.JSON:
+			var js json.RawMessage
+			if err := json.Unmarshal([]byte(setting.Value), &js); err != nil {
+				validateErrors = append(validateErrors, fmt.Sprintf("Invalid JSON value for setting %s", setting.Name))
+			}
+		default:
+			validateErrors = append(validateErrors, fmt.Sprintf("Unknown ValueType for setting %s", setting.Name))
+		}
+	}
+
+	return strings.Join(validateErrors, ", ")
 }

@@ -4,6 +4,7 @@ package errors
 const (
 	AppAvailable    = "appAvailable"
 	AppExists       = "appExists"
+	AppSettings     = "appSettings"
 	DomainAvailable = "domainAvailable"
 	DomainExists    = "domainExists"
 	DomainSettings  = "domainSettings"

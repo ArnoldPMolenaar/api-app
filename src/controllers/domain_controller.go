@@ -56,7 +56,7 @@ func CreateDomain(c *fiber.Ctx) error {
 	if err := validate.Struct(request); err != nil {
 		return errorutil.Response(c, fiber.StatusBadRequest, errorutil.Validator, utils.ValidatorErrors(err))
 	}
-	if validationErrors := validateSettings(&request.Settings); validationErrors != "" {
+	if validationErrors := validateDomainSettings(&request.Settings); validationErrors != "" {
 		return errorutil.Response(c, fiber.StatusBadRequest, errors.DomainSettings, validationErrors)
 	}
 
@@ -103,7 +103,7 @@ func UpdateDomain(c *fiber.Ctx) error {
 	if err := validate.Struct(request); err != nil {
 		return errorutil.Response(c, fiber.StatusBadRequest, errorutil.Validator, utils.ValidatorErrors(err))
 	}
-	if validationErrors := validateSettings(&request.Settings); validationErrors != "" {
+	if validationErrors := validateDomainSettings(&request.Settings); validationErrors != "" {
 		return errorutil.Response(c, fiber.StatusBadRequest, errors.DomainSettings, validationErrors)
 	}
 
@@ -197,11 +197,11 @@ func RestoreDomain(c *fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusNoContent)
 }
 
-// validateSettings validates an array of DomainSetting structs.
+// validateDomainSettings validates an array of DomainSetting structs.
 // It checks if the Value field of each DomainSetting is valid based on its ValueType.
 // If any validation errors occur, it returns a comma-separated string of error messages.
 // If the string is empty, it means all validations passed.
-func validateSettings(settings *[]requests.DomainSetting) string {
+func validateDomainSettings(settings *[]requests.DomainSetting) string {
 	var validateErrors []string
 
 	for i := range *settings {
