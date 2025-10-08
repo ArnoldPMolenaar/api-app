@@ -10,13 +10,14 @@ import (
 	"api-app/main/src/services"
 	"encoding/json"
 	"fmt"
+	"strconv"
+	"strings"
+	"time"
+
 	errorutil "github.com/ArnoldPMolenaar/api-utils/errors"
 	"github.com/ArnoldPMolenaar/api-utils/pagination"
 	"github.com/ArnoldPMolenaar/api-utils/utils"
 	"github.com/gofiber/fiber/v2"
-	"strconv"
-	"strings"
-	"time"
 )
 
 // AreAppsAvailable checks if all given apps exist.
@@ -59,13 +60,13 @@ func GetApps(c *fiber.Ctx) error {
 	}
 	offset := pagination.Offset(page, limit)
 
-	db := database.Pg.Unscoped().Scopes(queryFunc, sortFunc).Limit(limit).Offset(offset).Find(&apps)
+	db := database.Pg.Scopes(queryFunc, sortFunc).Limit(limit).Offset(offset).Find(&apps)
 	if db.Error != nil {
 		return errorutil.Response(c, fiber.StatusInternalServerError, errorutil.QueryError, db.Error.Error())
 	}
 
 	total := int64(0)
-	database.Pg.Unscoped().Scopes(queryFunc).Model(&models.App{}).Count(&total)
+	database.Pg.Scopes(queryFunc).Model(&models.App{}).Count(&total)
 	pageCount := pagination.Count(int(total), limit)
 
 	paginatedApps := make([]responses.PaginatedApp, len(apps))
