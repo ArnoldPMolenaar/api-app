@@ -1,12 +1,13 @@
 package middleware
 
 import (
+	"os"
+	"strings"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/recover"
-	"os"
-	"strings"
 )
 
 // FiberMiddleware provide Fiber's built-in middlewares.
@@ -20,6 +21,7 @@ func FiberMiddleware(a *fiber.App) {
 				fiber.MethodGet,
 				fiber.MethodPost,
 				fiber.MethodPut,
+				fiber.MethodDelete,
 				fiber.MethodHead,
 				fiber.MethodOptions,
 			}, ","),
