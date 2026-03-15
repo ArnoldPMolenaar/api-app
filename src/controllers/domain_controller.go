@@ -8,13 +8,42 @@ import (
 	"api-app/main/src/services"
 	"encoding/json"
 	"fmt"
-	errorutil "github.com/ArnoldPMolenaar/api-utils/errors"
-	"github.com/ArnoldPMolenaar/api-utils/utils"
-	"github.com/gofiber/fiber/v2"
 	"strconv"
 	"strings"
 	"time"
+
+	errorutil "github.com/ArnoldPMolenaar/api-utils/errors"
+	"github.com/ArnoldPMolenaar/api-utils/utils"
+	"github.com/gofiber/fiber/v2"
 )
+
+// GetDomainsByAppName function to read a list of domains by the appName.
+func GetDomainsByAppName(c *fiber.Ctx) error {
+	// Get the AppName from the URL.
+	appName := c.Query("app")
+	if appName == "" {
+		return errorutil.Response(c, fiber.StatusBadRequest, errorutil.MissingRequiredParam, "App name is required.")
+	}
+
+	// Check if app exists.
+	if available, err := services.IsAppAvailable(appName); err != nil {
+		return errorutil.Response(c, fiber.StatusInternalServerError, errorutil.QueryError, err.Error())
+	} else if !available {
+		return errorutil.Response(c, fiber.StatusBadRequest, errors.AppExists, "AppName does not exists.")
+	}
+
+	// Get the domains.
+	domains, err := services.GetDomainsByAppName(appName)
+	if err != nil {
+		return errorutil.Response(c, fiber.StatusInternalServerError, errorutil.QueryError, err.Error())
+	}
+
+	// Return the domains.
+	response := responses.DomainList{}
+	response.SetDomains(domains)
+
+	return c.JSON(response)
+}
 
 // GetDomain function fetches a domain from the database by its ID.
 func GetDomain(c *fiber.Ctx) error {

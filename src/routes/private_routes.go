@@ -3,6 +3,7 @@ package routes
 import (
 	"api-app/main/src/controllers"
 	"api-app/main/src/enums"
+
 	"github.com/ArnoldPMolenaar/api-utils/middleware"
 	"github.com/gofiber/fiber/v2"
 )
@@ -34,6 +35,7 @@ func PrivateRoutes(a *fiber.App) {
 	domains.Get("/settings", func(c *fiber.Ctx) error {
 		return controllers.GetSettingsByDomainName(c, enums.Private)
 	})
+	domains.Get("/app-name", controllers.GetDomainsByAppName)
 	domains.Get("/:id", controllers.GetDomain)
 	domains.Put("/:id", controllers.UpdateDomain)
 	domains.Delete("/:id", controllers.DeleteDomain)

@@ -33,6 +33,19 @@ func IsDomainDeleted(id uint) (bool, error) {
 	return count == 1, nil
 }
 
+// GetDomainsByAppName method to find domains that are bounded to an app_name.
+func GetDomainsByAppName(appName string) (*[]models.Domain, error) {
+	var domains []models.Domain
+
+	if result := database.Pg.Model(&models.Domain{}).
+		Joins("JOIN apps ON apps.id = domains.app_id").
+		Find(&domains, "apps.name = ?", appName); result.Error != nil {
+		return nil, result.Error
+	}
+
+	return &domains, nil
+}
+
 // GetDomainById method to get a domain by its ID.
 func GetDomainById(id uint) (*models.Domain, error) {
 	domain := &models.Domain{}
