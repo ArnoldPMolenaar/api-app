@@ -136,58 +136,70 @@ func UpdateApp(oldApp *models.App, request *requests.UpdateApp) (*models.App, er
 		}
 	}
 
-	// Create a map for quick lookup of new domains by name.
-	newDomainsMap := make(map[uint]requests.UpdateAppDomain)
-	for i := range request.Domains {
-		if request.Domains[i].ID != 0 {
-			newDomainsMap[request.Domains[i].ID] = request.Domains[i]
-		}
-	}
+	oldDomainsByID := make(map[uint]*models.Domain, len(oldApp.Domains))
+	oldDomainsByName := make(map[string]*models.Domain, len(oldApp.Domains))
+	processedDomainIDs := make(map[uint]struct{}, len(request.Domains))
 
-	// Iterate through old domains to update or mark as deleted.
 	for i := range oldApp.Domains {
-		oldDomain := &oldApp.Domains[i]
-		if newDomain, exists := newDomainsMap[oldDomain.ID]; exists {
-			// Update existing domain.
-			oldDomain.SSL = newDomain.SSL
-			subdomain, secondLevelDomain, topLevelDomain := utils.ExtractDomain(newDomain.Name)
-			oldDomain.Sub = sql.NullString{String: subdomain, Valid: subdomain != ""}
-			oldDomain.SecondLevel = secondLevelDomain
-			oldDomain.TopLevel = topLevelDomain
-			oldDomain.IpAddress = newDomain.IpAddress
-
-			// Restore if it was previously deleted.
-			if oldDomain.DeletedAt.Valid {
-				oldDomain.DeletedAt.Valid = false
-			}
-
-			if result := tx.Save(&oldDomain); result.Error != nil {
-				tx.Rollback()
-				return nil, result.Error
-			}
-
-			// Remove from newDomainsMap as it is already processed.
-			delete(newDomainsMap, oldDomain.ID)
-		} else {
-			// Mark as deleted if not in new domains
-			if result := tx.Delete(&oldDomain); result.Error != nil {
-				tx.Rollback()
-				return nil, result.Error
-			}
-		}
+		domain := &oldApp.Domains[i]
+		oldDomainsByID[domain.ID] = domain
+		oldDomainsByName[domain.Name] = domain
 	}
 
-	// Add new domains that were not in old domains.
-	for _, newDomain := range newDomainsMap {
-		subdomain, secondLevelDomain, topLevelDomain := utils.ExtractDomain(newDomain.Name)
-		oldApp.Domains = append(oldApp.Domains, models.Domain{
-			SSL:         newDomain.SSL,
-			Name:        newDomain.Name,
-			Sub:         sql.NullString{String: subdomain, Valid: subdomain != ""},
-			SecondLevel: secondLevelDomain,
-			TopLevel:    topLevelDomain,
-			IpAddress:   newDomain.IpAddress,
-		})
+	for i := range request.Domains {
+		newDomain := request.Domains[i]
+
+		var oldDomain *models.Domain
+		if newDomain.ID != nil {
+			oldDomain = oldDomainsByID[*newDomain.ID]
+		} else {
+			oldDomain = oldDomainsByName[newDomain.Name]
+		}
+
+		if oldDomain == nil {
+			domain := models.Domain{AppID: oldApp.ID}
+			setDomainValues(&domain, &newDomain)
+
+			if result := tx.Create(&domain); result.Error != nil {
+				tx.Rollback()
+				return nil, result.Error
+			}
+
+			processedDomainIDs[domain.ID] = struct{}{}
+			continue
+		}
+
+		previousName := oldDomain.Name
+		setDomainValues(oldDomain, &newDomain)
+		if oldDomain.DeletedAt.Valid {
+			oldDomain.DeletedAt.Valid = false
+		}
+
+		if result := tx.Save(oldDomain); result.Error != nil {
+			tx.Rollback()
+			return nil, result.Error
+		}
+
+		if previousName != oldDomain.Name {
+			delete(oldDomainsByName, previousName)
+		}
+		oldDomainsByName[oldDomain.Name] = oldDomain
+		processedDomainIDs[oldDomain.ID] = struct{}{}
+	}
+
+	for i := range oldApp.Domains {
+		domain := &oldApp.Domains[i]
+		if _, exists := processedDomainIDs[domain.ID]; exists {
+			continue
+		}
+		if domain.DeletedAt.Valid {
+			continue
+		}
+
+		if result := tx.Delete(domain); result.Error != nil {
+			tx.Rollback()
+			return nil, result.Error
+		}
 	}
 
 	if result := tx.Save(oldApp); result.Error != nil {
@@ -222,6 +234,16 @@ func DeleteApp(app *models.App) error {
 // RestoreApp method to restore a deleted app.
 func RestoreApp(id uint) error {
 	return database.Pg.Unscoped().Model(&models.App{}).Where("id = ?", id).Update("deleted_at", nil).Error
+}
+
+func setDomainValues(domain *models.Domain, requestDomain *requests.UpdateAppDomain) {
+	subdomain, secondLevelDomain, topLevelDomain := utils.ExtractDomain(requestDomain.Name)
+	domain.SSL = requestDomain.SSL
+	domain.Name = requestDomain.Name
+	domain.Sub = sql.NullString{String: subdomain, Valid: subdomain != ""}
+	domain.SecondLevel = secondLevelDomain
+	domain.TopLevel = topLevelDomain
+	domain.IpAddress = requestDomain.IpAddress
 }
 
 // deleteAppSettingsCache method to delete the settings cache.

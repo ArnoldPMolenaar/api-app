@@ -4,5 +4,5 @@ package requests
 type CreateApp struct {
 	Name     string            `json:"name" validate:"required"`
 	Settings []AppSetting      `json:"settings" validate:"dive"`
-	Domains  []CreateAppDomain `json:"domains" validate:"required,dive"`
+	Domains  []CreateAppDomain `json:"domains" validate:"required,min=1,dive"`
 }

@@ -200,7 +200,7 @@ func UpdateApp(c *fiber.Ctx) error {
 
 		var newDomain *requests.UpdateAppDomain = nil
 		for j := range request.Domains {
-			if app.Domains[i].ID == request.Domains[j].ID {
+			if request.Domains[j].ID != nil && app.Domains[i].ID == *request.Domains[j].ID {
 				newDomain = &request.Domains[j]
 				break
 			}
