@@ -7,15 +7,16 @@ import (
 	"api-app/main/src/services"
 	"encoding/json"
 	"fmt"
-	errorutil "github.com/ArnoldPMolenaar/api-utils/errors"
-	"github.com/ArnoldPMolenaar/api-utils/utils"
-	"github.com/gofiber/fiber/v2"
 	"strconv"
 	"time"
+
+	errorutil "github.com/ArnoldPMolenaar/api-utils/errors"
+	"github.com/ArnoldPMolenaar/api-utils/utils"
+	"github.com/gofiber/fiber/v3"
 )
 
 // GetSettingsByDomainName function to get settings by domain name.
-func GetSettingsByDomainName(c *fiber.Ctx, level enums.Level) error {
+func GetSettingsByDomainName(c fiber.Ctx, level enums.Level) error {
 	// Get the AppName and DomainName parameter from the URL.
 	appName := c.Query("app")
 	if appName == "" {
@@ -48,7 +49,7 @@ func GetSettingsByDomainName(c *fiber.Ctx, level enums.Level) error {
 }
 
 // GetSettingsByDomainID function to get settings by domain ID.
-func GetSettingsByDomainID(c *fiber.Ctx, level enums.Level) error {
+func GetSettingsByDomainID(c fiber.Ctx, level enums.Level) error {
 	// Get the domainID parameter from the URL.
 	domainIDParam := c.Params("id")
 	if domainIDParam == "" {

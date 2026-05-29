@@ -8,9 +8,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/valkey-io/valkey-go"
 	"os"
 	"time"
+
+	"github.com/valkey-io/valkey-go"
 )
 
 // GetAppSettingsByName method to get settings by app name.

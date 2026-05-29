@@ -10,8 +10,8 @@ type DomainList struct {
 func (d *DomainList) SetDomains(domains *[]models.Domain) {
 	d.Domains = make([]Domain, len(*domains))
 
-	for i, domain := range *domains {
+	for i := range *domains {
 		d.Domains[i] = Domain{}
-		d.Domains[i].SetDomain(&domain)
+		d.Domains[i].SetDomain(&(*domains)[i])
 	}
 }

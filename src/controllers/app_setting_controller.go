@@ -4,13 +4,14 @@ import (
 	"api-app/main/src/enums"
 	"api-app/main/src/errors"
 	"api-app/main/src/services"
+
 	errorutil "github.com/ArnoldPMolenaar/api-utils/errors"
 	"github.com/ArnoldPMolenaar/api-utils/utils"
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 // GetSettingsByAppName function to get settings by app name.
-func GetSettingsByAppName(c *fiber.Ctx, level enums.Level) error {
+func GetSettingsByAppName(c fiber.Ctx, level enums.Level) error {
 	// Get the AppName and DomainName parameter from the URL.
 	appName := c.Query("app")
 	if appName == "" {
@@ -33,7 +34,7 @@ func GetSettingsByAppName(c *fiber.Ctx, level enums.Level) error {
 }
 
 // GetSettingsByAppID function to get settings by app ID.
-func GetSettingsByAppID(c *fiber.Ctx, level enums.Level) error {
+func GetSettingsByAppID(c fiber.Ctx, level enums.Level) error {
 	// Get the domainID parameter from the URL.
 	appIDParam := c.Params("id")
 	if appIDParam == "" {

@@ -14,11 +14,11 @@ import (
 
 	errorutil "github.com/ArnoldPMolenaar/api-utils/errors"
 	"github.com/ArnoldPMolenaar/api-utils/utils"
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 // GetDomainsByAppName function to read a list of domains by the appName.
-func GetDomainsByAppName(c *fiber.Ctx) error {
+func GetDomainsByAppName(c fiber.Ctx) error {
 	// Get the AppName from the URL.
 	appName := c.Query("app")
 	if appName == "" {
@@ -46,7 +46,7 @@ func GetDomainsByAppName(c *fiber.Ctx) error {
 }
 
 // GetDomain function fetches a domain from the database by its ID.
-func GetDomain(c *fiber.Ctx) error {
+func GetDomain(c fiber.Ctx) error {
 	// Get the domainID parameter from the URL.
 	domainIDParam := c.Params("id")
 	if domainIDParam == "" {
@@ -73,11 +73,11 @@ func GetDomain(c *fiber.Ctx) error {
 }
 
 // CreateDomain func to create a domain.
-func CreateDomain(c *fiber.Ctx) error {
+func CreateDomain(c fiber.Ctx) error {
 	// Parse the request.
 	request := requests.CreateDomain{}
-	if err := c.BodyParser(&request); err != nil {
-		return errorutil.Response(c, fiber.StatusBadRequest, errorutil.BodyParse, err.Error())
+	if err := c.Bind().Body(&request); err != nil {
+		return errorutil.Response(c, fiber.StatusBadRequest, errorutil.BodyParse, err)
 	}
 
 	// Validate domain fields.
@@ -110,7 +110,7 @@ func CreateDomain(c *fiber.Ctx) error {
 }
 
 // UpdateDomain func to update a domain.
-func UpdateDomain(c *fiber.Ctx) error {
+func UpdateDomain(c fiber.Ctx) error {
 	// Get the ID from the URL.
 	domainIDParam := c.Params("id")
 	if domainIDParam == "" {
@@ -123,8 +123,8 @@ func UpdateDomain(c *fiber.Ctx) error {
 
 	// Parse the request.
 	request := requests.UpdateDomain{}
-	if err := c.BodyParser(&request); err != nil {
-		return errorutil.Response(c, fiber.StatusBadRequest, errorutil.BodyParse, err.Error())
+	if err := c.Bind().Body(&request); err != nil {
+		return errorutil.Response(c, fiber.StatusBadRequest, errorutil.BodyParse, err)
 	}
 
 	// Validate domain fields.
@@ -172,7 +172,7 @@ func UpdateDomain(c *fiber.Ctx) error {
 }
 
 // DeleteDomain func to delete a domain.
-func DeleteDomain(c *fiber.Ctx) error {
+func DeleteDomain(c fiber.Ctx) error {
 	// Get the ID from the URL.
 	domainIDParam := c.Params("id")
 	if domainIDParam == "" {
@@ -200,7 +200,7 @@ func DeleteDomain(c *fiber.Ctx) error {
 }
 
 // RestoreDomain func to restore a domain.
-func RestoreDomain(c *fiber.Ctx) error {
+func RestoreDomain(c fiber.Ctx) error {
 	// Get the ID from the URL.
 	domainIDParam := c.Params("id")
 	if domainIDParam == "" {

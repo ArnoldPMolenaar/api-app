@@ -1,7 +1,7 @@
 # 🔧 API-App
 
-![Go](https://img.shields.io/badge/Go-1.17-blue)
-![Fiber](https://img.shields.io/badge/Fiber-2.0-green)
+![Go](https://img.shields.io/badge/Go-1.25.9-blue)
+![Fiber](https://img.shields.io/badge/Fiber-3.0-green)
 ![Gorm](https://img.shields.io/badge/Gorm-1.21.12-orange)
 
 ## 📜 Description
@@ -21,18 +21,18 @@ This API provides endpoints to manage applications and their associated domain n
     - `GET /v1/apps/` - Get all apps
     - `POST /v1/apps/` - Create a new app
     - `GET /v1/apps/:id` - Get an app by ID
-    - `PUT /v1/apps/:id` - Update an app by ID
+    - `PATCH /v1/apps/:id` - Update an app by ID
     - `DELETE /v1/apps/:id` - Delete an app by ID
-    - `PUT /v1/apps/:id/restore` - Restore a deleted app by ID
+    - `POST /v1/apps/:id/restore` - Restore a deleted app by ID
     - `GET /v1/apps/settings` - Get settings by app name
     - `GET /v1/apps/:id/settings` - Get settings by app ID
 
 - **Domains**
     - `POST /v1/domains/` - Create a new domain
     - `GET /v1/domains/:id` - Get a domain by ID
-    - `PUT /v1/domains/:id` - Update a domain by ID
+    - `PATCH /v1/domains/:id` - Update a domain by ID
     - `DELETE /v1/domains/:id` - Delete a domain by ID
-    - `PUT /v1/domains/:id/restore` - Restore a deleted domain by ID
+    - `POST /v1/domains/:id/restore` - Restore a deleted domain by ID
     - `GET /v1/domains/settings` - Get settings by domain name
     - `GET /v1/domains/:id/settings` - Get settings by domain ID
 

@@ -3,11 +3,22 @@ package services
 import (
 	"api-app/main/src/database"
 	"api-app/main/src/dto/requests"
+	"api-app/main/src/dto/responses"
 	"api-app/main/src/enums"
 	"api-app/main/src/models"
 	"api-app/main/src/utils"
 	"database/sql"
+
+	"github.com/ArnoldPMolenaar/api-utils/pagination"
+	"github.com/valyala/fasthttp"
 )
+
+var allowedAppColumns = map[string]bool{
+	"id":         true,
+	"name":       true,
+	"created_at": true,
+	"updated_at": true,
+}
 
 // IsAppAvailable method to check if an app is available.
 func IsAppAvailable(app string) (bool, error) {
@@ -26,6 +37,34 @@ func AreAppsAvailable(apps []string) (bool, error) {
 		return false, result.Error
 	}
 	return int64(len(apps)) == foundApps, nil
+}
+
+// GetApps returns paginated apps based on query values.
+func GetApps(values *fasthttp.Args, page, limit int) (interface{}, error) {
+	apps := make([]models.App, 0)
+
+	queryFunc := pagination.Query(values, allowedAppColumns)
+	sortFunc := pagination.Sort(values, allowedAppColumns)
+	offset := pagination.Offset(page, limit)
+
+	if result := database.Pg.Scopes(queryFunc, sortFunc).Limit(limit).Offset(offset).Find(&apps); result.Error != nil {
+		return nil, result.Error
+	}
+
+	total := int64(0)
+	if result := database.Pg.Scopes(queryFunc).Model(&models.App{}).Count(&total); result.Error != nil {
+		return nil, result.Error
+	}
+	pageCount := pagination.Count(int(total), limit)
+
+	paginatedApps := make([]responses.PaginatedApp, len(apps))
+	for i := range apps {
+		paginatedApp := responses.PaginatedApp{}
+		paginatedApp.SetPaginatedApp(&apps[i])
+		paginatedApps[i] = paginatedApp
+	}
+
+	return pagination.CreatePaginationModel(limit, page, pageCount, int(total), paginatedApps), nil
 }
 
 // IsAppDeleted method to check if an app is deleted.

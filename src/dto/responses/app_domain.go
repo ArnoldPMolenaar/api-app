@@ -3,6 +3,8 @@ package responses
 import (
 	"api-app/main/src/models"
 	"time"
+
+	"github.com/ArnoldPMolenaar/api-utils/utils"
 )
 
 // AppDomain struct to handle domain response.
@@ -25,9 +27,7 @@ func (d *AppDomain) SetDomain(domain *models.Domain) {
 	d.AppID = domain.AppID
 	d.SSL = domain.SSL
 	d.Name = domain.Name
-	if domain.Sub.Valid {
-		d.Sub = &domain.Sub.String
-	}
+	d.Sub = utils.PtrFromNullString(domain.Sub)
 	d.SecondLevel = domain.SecondLevel
 	d.TopLevel = domain.TopLevel
 	d.IpAddress = domain.IpAddress

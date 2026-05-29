@@ -1,12 +1,10 @@
 package controllers
 
 import (
-	"api-app/main/src/database"
 	"api-app/main/src/dto/requests"
 	"api-app/main/src/dto/responses"
 	"api-app/main/src/enums"
 	"api-app/main/src/errors"
-	"api-app/main/src/models"
 	"api-app/main/src/services"
 	"encoding/json"
 	"fmt"
@@ -15,17 +13,16 @@ import (
 	"time"
 
 	errorutil "github.com/ArnoldPMolenaar/api-utils/errors"
-	"github.com/ArnoldPMolenaar/api-utils/pagination"
 	"github.com/ArnoldPMolenaar/api-utils/utils"
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 // AreAppsAvailable checks if all given apps exist.
-func AreAppsAvailable(c *fiber.Ctx) error {
+func AreAppsAvailable(c fiber.Ctx) error {
 	// Get the appName parameter from the query string.
 	query := &requests.AreAppsAvailable{}
-	if err := c.QueryParser(query); err != nil {
-		return errorutil.Response(c, fiber.StatusBadRequest, errorutil.BodyParse, err.Error())
+	if err := c.Bind().Query(query); err != nil {
+		return errorutil.Response(c, fiber.StatusBadRequest, errorutil.BodyParse, err)
 	}
 
 	// Check if the apps exists.
@@ -38,51 +35,26 @@ func AreAppsAvailable(c *fiber.Ctx) error {
 }
 
 // GetApps function fetches all apps from the database.
-func GetApps(c *fiber.Ctx) error {
-	apps := make([]models.App, 0)
+func GetApps(c fiber.Ctx) error {
 	values := c.Request().URI().QueryArgs()
-	allowedColumns := map[string]bool{
-		"id":         true,
-		"name":       true,
-		"created_at": true,
-		"updated_at": true,
-	}
-
-	queryFunc := pagination.Query(values, allowedColumns)
-	sortFunc := pagination.Sort(values, allowedColumns)
-	page := c.QueryInt("page", 1)
-	if page < 1 {
+	page, pageParseErr := strconv.Atoi(c.Query("page", "1"))
+	if pageParseErr != nil || page < 1 {
 		page = 1
 	}
-	limit := c.QueryInt("limit", 10)
-	if limit < 1 {
+	limit, limitParseErr := strconv.Atoi(c.Query("limit", "10"))
+	if limitParseErr != nil || limit < 1 {
 		limit = 10
 	}
-	offset := pagination.Offset(page, limit)
-
-	db := database.Pg.Scopes(queryFunc, sortFunc).Limit(limit).Offset(offset).Find(&apps)
-	if db.Error != nil {
-		return errorutil.Response(c, fiber.StatusInternalServerError, errorutil.QueryError, db.Error.Error())
+	paginationModel, err := services.GetApps(values, page, limit)
+	if err != nil {
+		return errorutil.Response(c, fiber.StatusInternalServerError, errorutil.QueryError, err.Error())
 	}
-
-	total := int64(0)
-	database.Pg.Scopes(queryFunc).Model(&models.App{}).Count(&total)
-	pageCount := pagination.Count(int(total), limit)
-
-	paginatedApps := make([]responses.PaginatedApp, len(apps))
-	for i := range apps {
-		paginatedApp := responses.PaginatedApp{}
-		paginatedApp.SetPaginatedApp(&apps[i])
-		paginatedApps[i] = paginatedApp
-	}
-
-	paginationModel := pagination.CreatePaginationModel(limit, page, pageCount, int(total), paginatedApps)
 
 	return c.Status(fiber.StatusOK).JSON(paginationModel)
 }
 
 // GetApp function fetches an app from the database by its ID.
-func GetApp(c *fiber.Ctx) error {
+func GetApp(c fiber.Ctx) error {
 	// Get the appID parameter from the URL.
 	appIDParam := c.Params("id")
 	if appIDParam == "" {
@@ -108,12 +80,12 @@ func GetApp(c *fiber.Ctx) error {
 	return c.JSON(response)
 }
 
-// CreateApp func to create a app.
-func CreateApp(c *fiber.Ctx) error {
+// CreateApp func to create an app.
+func CreateApp(c fiber.Ctx) error {
 	// Parse the request.
 	request := requests.CreateApp{}
-	if err := c.BodyParser(&request); err != nil {
-		return errorutil.Response(c, fiber.StatusBadRequest, errorutil.BodyParse, err.Error())
+	if err := c.Bind().Body(&request); err != nil {
+		return errorutil.Response(c, fiber.StatusBadRequest, errorutil.BodyParse, err)
 	}
 
 	// Validate app fields.
@@ -145,8 +117,8 @@ func CreateApp(c *fiber.Ctx) error {
 	return c.JSON(response)
 }
 
-// UpdateApp func to update a app.
-func UpdateApp(c *fiber.Ctx) error {
+// UpdateApp func to update an app.
+func UpdateApp(c fiber.Ctx) error {
 	// Get the ID from the URL.
 	appIDParam := c.Params("id")
 	if appIDParam == "" {
@@ -159,8 +131,8 @@ func UpdateApp(c *fiber.Ctx) error {
 
 	// Parse the request.
 	request := requests.UpdateApp{}
-	if err := c.BodyParser(&request); err != nil {
-		return errorutil.Response(c, fiber.StatusBadRequest, errorutil.BodyParse, err.Error())
+	if err := c.Bind().Body(&request); err != nil {
+		return errorutil.Response(c, fiber.StatusBadRequest, errorutil.BodyParse, err)
 	}
 
 	// Validate app fields.
@@ -223,8 +195,8 @@ func UpdateApp(c *fiber.Ctx) error {
 	return c.JSON(response)
 }
 
-// DeleteApp func to delete a app.
-func DeleteApp(c *fiber.Ctx) error {
+// DeleteApp func to delete an app.
+func DeleteApp(c fiber.Ctx) error {
 	// Get the ID from the URL.
 	appIDParam := c.Params("id")
 	if appIDParam == "" {
@@ -251,8 +223,8 @@ func DeleteApp(c *fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusNoContent)
 }
 
-// RestoreApp func to restore a app.
-func RestoreApp(c *fiber.Ctx) error {
+// RestoreApp func to restore an app.
+func RestoreApp(c fiber.Ctx) error {
 	// Get the ID from the URL.
 	appIDParam := c.Params("id")
 	if appIDParam == "" {
