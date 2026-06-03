@@ -41,7 +41,7 @@ services:
     command: ["/api"]
   prod_probe:
     image: curlimages/curl:8.16.0
-    container_name: api_mail_prod_probe
+    container_name: api_app_prod_probe
     network_mode: "host"
     profiles: ["local"]
     depends_on:
